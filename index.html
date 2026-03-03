@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arngren.net | The World's Largest Gadget Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a202c;
+        }
+        
+        .focus-ring:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 2px;
+        }
+        
+        .hover-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .hover-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        /* Toast animation */
+        
+        @keyframes toastIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes toastOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .toast-enter {
+            animation: toastIn 0.3s ease-out forwards;
+        }
+        
+        .toast-exit {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        /* Mini-cart slide */
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+            }
+            to {
+                transform: translateX(100%);
+            }
+        }
+        
+        .minicart-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        .minicart-exit {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+        /* Quick view fade */
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .quickview-enter {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        /* Search dropdown */
+        
+        .search-dropdown {
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        /* Wishlist heart */
+        
+        .heart-active {
+            color: #ef4444;
+            fill: #ef4444;
+        }
+        /* Mobile menu */
+        
+        @keyframes mobileMenuIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .mobile-menu-enter {
+            animation: mobileMenuIn 0.2s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="antialiased text-gray-800">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-24 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <!-- Quick View Modal Overlay -->
+    <div id="quickview-overlay" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4" onclick="if(event.target===this)closeQuickView()">
+        <div id="quickview-content" class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto quickview-enter"></div>
+    </div>
+
+    <!-- Mini Cart Drawer -->
+    <div id="minicart-overlay" class="fixed inset-0 bg-black/40 z-[70] hidden" onclick="closeMiniCart()"></div>
+    <div id="minicart-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[71] transform translate-x-full flex flex-col">
+        <div class="flex items-center justify-between p-6 border-b border-gray-100">
+            <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <i data-lucide="shopping-cart" class="w-5 h-5"></i> Your Cart
+                <span id="minicart-count-label" class="text-sm font-normal text-gray-500">(0 items)</span>
+            </h2>
+            <button onclick="closeMiniCart()" class="text-gray-400 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div id="minicart-items" class="flex-grow overflow-y-auto p-6 space-y-4"></div>
+        <div id="minicart-footer" class="border-t border-gray-100 p-6">
+            <div class="flex justify-between mb-2 text-sm text-gray-500"><span>Subtotal</span><span id="minicart-subtotal" class="font-semibold text-gray-900">$0.00</span></div>
+            <p class="text-xs text-gray-400 mb-4">Shipping & taxes calculated at checkout</p>
+            <a href="shoppingcart.html" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 rounded-lg transition-colors mb-2">View Cart & Checkout</a>
+            <button onclick="closeMiniCart()" class="block w-full text-center text-blue-600 font-semibold text-sm hover:underline">Continue Shopping</button>
+        </div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="bg-gray-900 text-white text-xs py-2">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <span>🌍 Worldwide Shipping available — Free over $100</span>
+            <div class="flex gap-4">
+                <a href="#" class="hover:underline">Contact</a>
+                <a href="#" class="hover:underline">Support</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+
+                <!-- Logo -->
+                <a href="index.html" class="flex-shrink-0 flex items-center cursor-pointer no-underline">
+                    <span class="text-3xl font-extrabold tracking-tighter text-gray-900">
+                        ARNGREN<span class="text-blue-600">.NET</span>
+                    </span>
+                </a>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="category.html?cat=electronics" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Electronics</a>
+                        <a href="category.html?cat=electric-vehicles" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Electric Vehicles</a>
+                        <a href="category.html?cat=atv" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">ATV & MC</a>
+                        <a href="category.html?cat=drones" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors">Drones</a>
+                        <a href="category.html?cat=clearance" class="text-red-600 hover:text-red-700 px-3 py-2 text-sm font-bold transition-colors">Clearance</a>
+                    </div>
+                </div>
+
+                <!-- Search & Icons -->
+                <div class="hidden md:flex items-center gap-4">
+                    <!-- Search with Autocomplete -->
+                    <div class="relative" id="search-container">
+                        <input type="text" id="search-input" placeholder="Search catalog..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 w-72 transition-all" autocomplete="off" onfocus="showSearchDropdown()"
+                            oninput="handleSearch(this.value)">
+                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-2.5"></i>
+                        <!-- Search Dropdown -->
+                        <div id="search-dropdown" class="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl search-dropdown z-50 hidden overflow-hidden">
+                            <div id="search-results" class="max-h-96 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                    <!-- Wishlist -->
+                    <button onclick="window.location.href='category.html?wishlist=true'" class="text-gray-500 hover:text-red-500 relative transition-colors" title="Wishlist">
+                        <i data-lucide="heart" class="w-6 h-6"></i>
+                        <span id="wishlist-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 rounded-full hidden">0</span>
+                    </button>
+                    <!-- Cart -->
+                    <button onclick="openMiniCart()" class="text-gray-700 hover:text-blue-600 relative" title="Cart">
+                        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                        <span id="cart-badge" class="absolute -top-1 -right-2 bg-blue-600 text-white text-xs font-bold px-1.5 rounded-full">0</span>
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleMobileMenu()" class="md:hidden text-gray-700 p-2">
+                    <i data-lucide="menu" class="w-6 h-6" id="mobile-menu-icon"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 bg-white">
+            <div class="px-4 py-4 space-y-2 mobile-menu-enter">
+                <div class="relative mb-3">
+                    <input type="text" placeholder="Search catalog..." class="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm w-full focus:outline-none focus:border-blue-500" oninput="handleSearch(this.value)" onfocus="showSearchDropdown()">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-3"></i>
+                </div>
+                <a href="category.html?cat=electronics" class="block px-3 py-2 text-gray-700 font-semibold hover:bg-blue-50 rounded-lg">Electronics</a>
+                <a href="category.html?cat=electric-vehicles" class="block px-3 py-2 text-gray-700 font-semibold hover:bg-blue-50 rounded-lg">Electric Vehicles</a>
+                <a href="category.html?cat=atv" class="block px-3 py-2 text-gray-700 font-semibold hover:bg-blue-50 rounded-lg">ATV & MC</a>
+                <a href="category.html?cat=drones" class="block px-3 py-2 text-gray-700 font-semibold hover:bg-blue-50 rounded-lg">Drones</a>
+                <a href="category.html?cat=clearance" class="block px-3 py-2 text-red-600 font-bold hover:bg-red-50 rounded-lg">Clearance</a>
+                <div class="flex gap-4 pt-3 border-t border-gray-100">
+                    <a href="shoppingcart.html" class="flex items-center gap-2 text-gray-700 font-semibold"><i data-lucide="shopping-cart" class="w-5 h-5"></i> Cart</a>
+                    <a href="category.html?wishlist=true" class="flex items-center gap-2 text-gray-700 font-semibold"><i data-lucide="heart" class="w-5 h-5"></i> Wishlist</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24 flex flex-col md:flex-row items-center gap-12">
+            <div class="md:w-1/2">
+                <span class="text-blue-600 font-bold tracking-wide uppercase text-sm">Established 2000</span>
+                <h1 class="text-5xl font-extrabold text-gray-900 leading-tight mt-2 mb-6">
+                    The Original <br> Gadget Catalog.
+                </h1>
+                <p class="text-lg text-gray-600 mb-8 max-w-lg">
+                    Discover thousands of unique items you won't find anywhere else. From giant RC helicopters to personal submarines and electric vehicles.
+                </p>
+                <div class="flex gap-4">
+                    <a href="category.html" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-md font-semibold transition-colors shadow-sm inline-block no-underline">
+                        Browse Catalog
+                    </a>
+                    <a href="category.html?cat=clearance" class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-3 rounded-md font-semibold transition-colors inline-block no-underline">
+                        View Weekly Deals
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2 relative">
+                <div class="aspect-video rounded-lg overflow-hidden bg-gray-100 shadow-xl border border-gray-200">
+                    <img src="https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/19228c8ad-5592-45b2-9a0f-c7f21c4e7b69.png" alt="Featured Vehicle" class="w-full h-full object-cover">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-8 border-l-4 border-blue-600 pl-4">Shop by Category</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <a href="category.html?cat=atv" class="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer no-underline">
+                    <div class="h-40 overflow-hidden bg-gray-200">
+                        <img src="https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/142605fb5-e552-40a8-b4a5-ecd62b33bb4a.png" alt="ATV" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-base font-bold text-gray-900">ATV & Off-road</h3>
+                        <p class="text-gray-400 text-xs mt-1">140 Items</p>
+                    </div>
+                </a>
+                <a href="category.html?cat=drones" class="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer no-underline">
+                    <div class="h-40 overflow-hidden bg-gray-200">
+                        <img src="https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png" alt="Drone" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-base font-bold text-gray-900">Professional Drones</h3>
+                        <p class="text-gray-400 text-xs mt-1">85 Items</p>
+                    </div>
+                </a>
+                <a href="category.html?cat=electric-vehicles" class="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer no-underline">
+                    <div class="h-40 overflow-hidden bg-gray-200">
+                        <img src="https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1d3943a3a-5d24-4b09-bc61-1da3f217fd2b.png" alt="E-Bike" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-base font-bold text-gray-900">Electric Bikes</h3>
+                        <p class="text-gray-400 text-xs mt-1">200 Items</p>
+                    </div>
+                </a>
+                <a href="category.html?cat=electronics" class="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer no-underline">
+                    <div class="h-40 overflow-hidden bg-gray-200 flex items-center justify-center">
+                        <i data-lucide="cpu" class="w-16 h-16 text-gray-300"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-base font-bold text-gray-900">Electronics</h3>
+                        <p class="text-gray-400 text-xs mt-1">520 Items</p>
+                    </div>
+                </a>
+                <a href="category.html?cat=accessories" class="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-200 cursor-pointer no-underline">
+                    <div class="h-40 overflow-hidden bg-gray-200 flex items-center justify-center">
+                        <i data-lucide="settings" class="w-16 h-16 text-gray-300"></i>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="text-base font-bold text-gray-900">Accessories</h3>
+                        <p class="text-gray-400 text-xs mt-1">310 Items</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Products -->
+    <section class="py-16 bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900">Featured In Stock</h2>
+                <a href="category.html" class="text-blue-600 font-semibold hover:underline">See All Products →</a>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="featured-products"></div>
+        </div>
+    </section>
+
+    <!-- Trust Bar -->
+    <section class="py-12 bg-gray-50 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="bg-blue-100 text-blue-600 p-3 rounded-full"><i data-lucide="truck" class="w-6 h-6"></i></div>
+                    <span class="text-sm font-bold text-gray-900">Free Shipping</span>
+                    <span class="text-xs text-gray-500">On orders over $100</span>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="bg-green-100 text-green-600 p-3 rounded-full"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                    <span class="text-sm font-bold text-gray-900">Secure Payment</span>
+                    <span class="text-xs text-gray-500">256-bit SSL encryption</span>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="bg-orange-100 text-orange-600 p-3 rounded-full"><i data-lucide="rotate-ccw" class="w-6 h-6"></i></div>
+                    <span class="text-sm font-bold text-gray-900">30-Day Returns</span>
+                    <span class="text-xs text-gray-500">Money-back guarantee</span>
+                </div>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="bg-purple-100 text-purple-600 p-3 rounded-full"><i data-lucide="headphones" class="w-6 h-6"></i></div>
+                    <span class="text-sm font-bold text-gray-900">24/7 Support</span>
+                    <span class="text-xs text-gray-500">Expert help anytime</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 pt-12 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <span class="text-xl font-bold text-white tracking-tight block mb-4">ARNGREN<span class="text-blue-500">.NET</span></span>
+                    <p class="text-sm text-gray-400">The internet's favorite catalog since 2000. Delivering the weirdest and coolest gadgets directly to your door.</p>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4">Categories</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="category.html?cat=electric-vehicles" class="hover:text-white">Vehicles</a></li>
+                        <li><a href="category.html?cat=drones" class="hover:text-white">Drones</a></li>
+                        <li><a href="category.html?cat=electronics" class="hover:text-white">Electronics</a></li>
+                        <li><a href="category.html?cat=accessories" class="hover:text-white">Accessories</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4">Customer Service</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-white">Order Status</a></li>
+                        <li><a href="#" class="hover:text-white">Shipping Info</a></li>
+                        <li><a href="#" class="hover:text-white">Returns</a></li>
+                        <li><a href="#" class="hover:text-white">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-4">Newsletter</h4>
+                    <div class="flex gap-2">
+                        <input type="email" placeholder="Your email" class="bg-gray-800 border-none rounded px-3 py-2 text-sm w-full text-white">
+                        <button class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-white text-sm font-bold">GO</button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 pt-8 flex flex-col sm:flex-row justify-between items-center text-xs text-gray-500 gap-2">
+                <p>© 2026 Arngren.net. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white">Privacy Policy</a>
+                    <a href="#" class="hover:text-white">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // ===================== PRODUCT DATABASE =====================
+        const PRODUCTS = [{
+            id: 1,
+            name: "DJI Mavic 3 Pro - Cine Premium",
+            category: "drones",
+            price: 2199,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            badge: "",
+            desc: "Professional cinema-grade drone with Hasselblad camera, 43-min flight time, omnidirectional obstacle sensing.",
+            specs: {
+                "Camera": "4/3 CMOS Hasselblad",
+                "Flight Time": "43 min",
+                "Range": "15 km",
+                "Weight": "958 g",
+                "Resolution": "5.1K/50fps",
+                "Obstacle Sensing": "Omnidirectional"
+            },
+            stock: true,
+            color: "Classic Grey",
+            motorPower: "High",
+            batteryType: "LiPo 4S"
+        }, {
+            id: 2,
+            name: "Sony WH-1000XM5",
+            category: "electronics",
+            price: 349,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/148192a53-e7a2-4723-91cc-ba57ab394698.png",
+            badge: "",
+            desc: "Industry-leading noise canceling headphones with 30-hour battery life, multipoint connection, and crystal-clear calls.",
+            specs: {
+                "Driver": "30mm Carbon Fiber",
+                "Battery": "30 hours",
+                "Noise Canceling": "Auto NC Optimizer",
+                "Weight": "250 g",
+                "Bluetooth": "5.2",
+                "Codec": "LDAC, AAC"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-ion"
+        }, {
+            id: 3,
+            name: "Urban E-Scooter X",
+            category: "electric-vehicles",
+            price: 599,
+            salePrice: 499,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1c7b2f449-df6f-42a9-a47f-b5d7b849cbcd.png",
+            badge: "SALE",
+            desc: "Foldable electric scooter with 40km range, 25 km/h top speed, and IP54 water resistance rating.",
+            specs: {
+                "Motor": "350W Brushless",
+                "Range": "40 km",
+                "Top Speed": "25 km/h",
+                "Weight": "14.2 kg",
+                "Charge Time": "4 hours",
+                "Water Rating": "IP54"
+            },
+            stock: true,
+            color: "Matte Black",
+            motorPower: "350W",
+            batteryType: "Li-ion 36V"
+        }, {
+            id: 4,
+            name: "Fast Home Charger",
+            category: "accessories",
+            price: 199,
+            img: "",
+            icon: "zap",
+            badge: "",
+            desc: "Universal fast charger compatible with all major electric vehicles. Level 2, 240V, 32A output.",
+            specs: {
+                "Power": "7.68 kW",
+                "Voltage": "240V / 32A",
+                "Cable": "25 ft",
+                "Connector": "J1772",
+                "Certification": "UL Listed",
+                "Smart Features": "WiFi + App"
+            },
+            stock: true,
+            color: "White",
+            motorPower: "",
+            batteryType: ""
+        }, {
+            id: 5,
+            name: "Power Bank Pro 20000",
+            category: "electronics",
+            price: 49,
+            img: "",
+            icon: "battery-charging",
+            badge: "",
+            desc: "20,000mAh portable charger with 65W USB-C PD output. Charges laptops, phones, and tablets.",
+            specs: {
+                "Capacity": "20,000 mAh",
+                "Output": "65W USB-C PD",
+                "Ports": "2x USB-C, 1x USB-A",
+                "Weight": "340 g",
+                "Display": "LED Indicator",
+                "Pass-through": "Yes"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-Polymer"
+        }, {
+            id: 6,
+            name: "AA Lithium Batteries (4-Pack)",
+            category: "accessories",
+            price: 12,
+            img: "",
+            icon: "battery",
+            badge: "",
+            desc: "Long-lasting Energizer lithium AA batteries, 20-year shelf life. Ideal for high-drain devices.",
+            specs: {
+                "Type": "Lithium AA",
+                "Count": "4 pack",
+                "Voltage": "1.5V",
+                "Shelf Life": "20 years",
+                "Temperature": "-40°F to 140°F",
+                "Weight": "15g each"
+            },
+            stock: true,
+            color: "",
+            motorPower: "",
+            batteryType: "Lithium"
+        }, {
+            id: 7,
+            name: "Explorer ATV 4x4",
+            category: "atv",
+            price: 4999,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/142605fb5-e552-40a8-b4a5-ecd62b33bb4a.png",
+            badge: "",
+            desc: "Full-size 4x4 ATV with 570cc engine, electronic fuel injection, and independent rear suspension.",
+            specs: {
+                "Engine": "570cc Single Cylinder",
+                "Drive": "4x4 / 2x4 Selectable",
+                "Suspension": "Independent Rear",
+                "Fuel Injection": "Electronic",
+                "Towing": "1,225 lbs",
+                "Fuel Tank": "5.4 gal"
+            },
+            stock: true,
+            color: "Army Green",
+            motorPower: "570cc",
+            batteryType: ""
+        }, {
+            id: 8,
+            name: "Mountain E-Bike 750W",
+            category: "electric-vehicles",
+            price: 1899,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1d3943a3a-5d24-4b09-bc61-1da3f217fd2b.png",
+            badge: "NEW",
+            desc: "Full-suspension electric mountain bike with 750W mid-drive motor, 100km range, and 11-speed Shimano.",
+            specs: {
+                "Motor": "750W Mid-drive",
+                "Battery": "720Wh",
+                "Range": "100 km",
+                "Gears": "Shimano 11-speed",
+                "Brakes": "Hydraulic Disc",
+                "Weight": "23 kg"
+            },
+            stock: true,
+            color: "Forest Green",
+            motorPower: "750W",
+            batteryType: "Li-ion 48V"
+        }, {
+            id: 9,
+            name: "Racing Drone FPV Kit",
+            category: "drones",
+            price: 699,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            badge: "",
+            desc: "Complete FPV racing drone kit with goggles, controller, and 3 batteries. Ready to fly.",
+            specs: {
+                "Speed": "120 km/h",
+                "Camera": "1080p 60fps",
+                "Flight Time": "8 min/battery",
+                "Batteries": "3x LiPo 4S",
+                "Goggles": "5.8GHz Digital",
+                "Weight": "410 g"
+            },
+            stock: true,
+            color: "Carbon",
+            motorPower: "2400KV",
+            batteryType: "LiPo 4S"
+        }, {
+            id: 10,
+            name: "Smart Home Hub Pro",
+            category: "electronics",
+            price: 129,
+            img: "",
+            icon: "home",
+            badge: "NEW",
+            desc: "Central hub for all your smart devices. Supports Zigbee, Z-Wave, Matter, and WiFi 6E.",
+            specs: {
+                "Protocols": "Zigbee, Z-Wave, Matter",
+                "WiFi": "WiFi 6E",
+                "Speaker": "Built-in",
+                "Display": "7-inch touchscreen",
+                "Voice": "Alexa + Google",
+                "Devices": "Up to 300"
+            },
+            stock: true,
+            color: "White",
+            motorPower: "",
+            batteryType: ""
+        }, {
+            id: 11,
+            name: "Solar Panel Kit 400W",
+            category: "accessories",
+            price: 599,
+            img: "",
+            icon: "sun",
+            badge: "",
+            desc: "Portable 400W solar panel kit with inverter. Perfect for RVs, camping, and emergency backup.",
+            specs: {
+                "Output": "400W Peak",
+                "Panels": "2x 200W Mono",
+                "Inverter": "1000W Pure Sine",
+                "Controller": "MPPT 30A",
+                "Weight": "12 kg/panel",
+                "Warranty": "25 years"
+            },
+            stock: true,
+            color: "",
+            motorPower: "",
+            batteryType: "Solar"
+        }, {
+            id: 12,
+            name: "GPS Tracker Pro",
+            category: "electronics",
+            price: 79,
+            img: "",
+            icon: "map-pin",
+            badge: "",
+            desc: "Real-time GPS tracker with 4G LTE, 2-week battery, geofencing alerts, and global coverage.",
+            specs: {
+                "Network": "4G LTE",
+                "Battery": "2 weeks",
+                "Accuracy": "2.5m",
+                "Waterproof": "IP67",
+                "Geofencing": "Yes",
+                "App": "iOS + Android"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-ion"
+        }, ];
+
+        // ===================== STATE MANAGEMENT =====================
+        let cart = JSON.parse(localStorage.getItem('arngren_cart') || '[]');
+        let wishlist = JSON.parse(localStorage.getItem('arngren_wishlist') || '[]');
+
+        function saveCart() {
+            localStorage.setItem('arngren_cart', JSON.stringify(cart));
+            updateCartBadge();
+        }
+
+        function saveWishlist() {
+            localStorage.setItem('arngren_wishlist', JSON.stringify(wishlist));
+            updateWishlistBadge();
+        }
+
+        function updateCartBadge() {
+            const total = cart.reduce((s, i) => s + i.qty, 0);
+            document.getElementById('cart-badge').textContent = total;
+            document.getElementById('cart-badge').classList.toggle('hidden', total === 0);
+        }
+
+        function updateWishlistBadge() {
+            const b = document.getElementById('wishlist-badge');
+            b.textContent = wishlist.length;
+            b.classList.toggle('hidden', wishlist.length === 0);
+        }
+
+        // ===================== ADD TO CART =====================
+        function addToCart(productId, qty = 1) {
+            const product = PRODUCTS.find(p => p.id === productId);
+            if (!product) return;
+            const existing = cart.find(i => i.id === productId);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                cart.push({
+                    id: productId,
+                    qty
+                });
+            }
+            saveCart();
+            showToast(`${product.name} added to cart!`, 'success');
+            renderMiniCart();
+        }
+
+        function removeFromCart(productId) {
+            cart = cart.filter(i => i.id !== productId);
+            saveCart();
+            renderMiniCart();
+        }
+
+        // ===================== WISHLIST =====================
+        function toggleWishlist(productId) {
+            const idx = wishlist.indexOf(productId);
+            if (idx > -1) {
+                wishlist.splice(idx, 1);
+            } else {
+                wishlist.push(productId);
+            }
+            saveWishlist();
+            // Update heart icons
+            document.querySelectorAll(`[data-wishlist="${productId}"]`).forEach(el => {
+                el.classList.toggle('heart-active', wishlist.includes(productId));
+            });
+            const product = PRODUCTS.find(p => p.id === productId);
+            showToast(wishlist.includes(productId) ? `${product.name} added to wishlist` : `Removed from wishlist`, 'info');
+        }
+
+        // ===================== TOAST NOTIFICATIONS =====================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info'
+            };
+            toast.className = `${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-enter min-w-[300px]`;
+            toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm font-medium flex-grow">${message}</span><button onclick="this.parentElement.remove()" class="text-white/70 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+            container.appendChild(toast);
+            lucide.createIcons({
+                nodes: [toast]
+            });
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ===================== SEARCH AUTOCOMPLETE =====================
+        function handleSearch(query) {
+            const dropdown = document.getElementById('search-dropdown');
+            const results = document.getElementById('search-results');
+            if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            const q = query.toLowerCase();
+            const matches = PRODUCTS.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q)).slice(0, 6);
+            if (matches.length === 0) {
+                results.innerHTML = `<div class="p-6 text-center text-gray-400"><i data-lucide="search-x" class="w-8 h-8 mx-auto mb-2"></i><p class="text-sm">No results for "${query}"</p></div>`;
+            } else {
+                results.innerHTML = `<div class="p-2 text-xs text-gray-400 uppercase tracking-wider font-semibold px-4">Products</div>` +
+                    matches.map(p => `
+                    <button onclick="goToProduct(${p.id})" class="w-full flex items-center gap-4 px-4 py-3 hover:bg-blue-50 transition-colors text-left">
+                        <div class="w-12 h-12 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            ${p.img ? `<img src="${p.img}" class="w-full h-full object-cover" alt="">` : `<i data-lucide="${p.icon || 'box'}" class="w-5 h-5 text-gray-400"></i>`}
+                        </div>
+                        <div class="flex-grow min-w-0">
+                            <div class="text-sm font-semibold text-gray-900 truncate">${highlightMatch(p.name, query)}</div>
+                            <div class="text-xs text-gray-500">${p.category.charAt(0).toUpperCase() + p.category.slice(1).replace('-', ' ')}</div>
+                        </div>
+                        <div class="text-sm font-bold text-gray-900 flex-shrink-0">${p.salePrice ? `<span class="text-red-600">$${p.salePrice.toFixed(2)}</span> <span class="text-xs text-gray-400 line-through">$${p.price.toFixed(2)}</span>` : `$${p.price.toFixed(2)}`}</div>
+                    </button>
+                `).join('') +
+                `<div class="p-3 border-t border-gray-100 text-center">
+                    <a href="category.html?q=${encodeURIComponent(query)}" class="text-sm text-blue-600 font-semibold hover:underline">View all results for "${query}" →</a>
+                </div>`;
+        }
+        dropdown.classList.remove('hidden');
+        lucide.createIcons({ nodes: [results] });
+    }
+
+    function highlightMatch(text, query) {
+        const idx = text.toLowerCase().indexOf(query.toLowerCase());
+        if (idx === -1) return text;
+        return text.slice(0, idx) + '<mark class="bg-yellow-200 rounded px-0.5">' + text.slice(idx, idx + query.length) + '</mark>' + text.slice(idx + query.length);
+    }
+
+    function showSearchDropdown() {
+        const input = document.getElementById('search-input');
+        if (input && input.value.length > 0) handleSearch(input.value);
+    }
+
+    function goToProduct(id) {
+        document.getElementById('search-dropdown').classList.add('hidden');
+        document.getElementById('search-input').value = '';
+        window.location.href = `product.html?id=${id}`;
+    }
+
+    // Close search on outside click
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('search-container');
+        if (container && !container.contains(e.target)) {
+            document.getElementById('search-dropdown').classList.add('hidden');
+        }
+    });
+
+    // ===================== MINI CART =====================
+    function openMiniCart() {
+        renderMiniCart();
+        document.getElementById('minicart-overlay').classList.remove('hidden');
+        const drawer = document.getElementById('minicart-drawer');
+        drawer.classList.remove('translate-x-full');
+        drawer.classList.add('minicart-enter');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeMiniCart() {
+        document.getElementById('minicart-overlay').classList.add('hidden');
+        const drawer = document.getElementById('minicart-drawer');
+        drawer.classList.add('translate-x-full');
+        drawer.classList.remove('minicart-enter');
+        document.body.style.overflow = '';
+    }
+    function renderMiniCart() {
+        const container = document.getElementById('minicart-items');
+        const countLabel = document.getElementById('minicart-count-label');
+        const subtotalEl = document.getElementById('minicart-subtotal');
+        const totalItems = cart.reduce((s, i) => s + i.qty, 0);
+        countLabel.textContent = `(${totalItems} item${totalItems !== 1 ? 's' : ''})`;
+        if (cart.length === 0) {
+            container.innerHTML = `<div class="text-center py-12 text-gray-400"><i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-3 opacity-50"></i><p class="font-semibold">Your cart is empty</p><p class="text-sm mt-1">Start adding some amazing gadgets!</p></div>`;
+            subtotalEl.textContent = '$0.00';
+            lucide.createIcons({ nodes: [container] });
+            return;
+        }
+        let subtotal = 0;
+        container.innerHTML = cart.map(item => {
+            const p = PRODUCTS.find(pr => pr.id === item.id);
+            if (!p) return '';
+            const price = p.salePrice || p.price;
+            const lineTotal = price * item.qty;
+            subtotal += lineTotal;
+            return `<div class="flex gap-3 items-start p-3 bg-gray-50 rounded-lg">
+                <div class="w-16 h-16 bg-white rounded-md flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200">
+                    ${p.img ? `<img src="${p.img}" class="w-full h-full object-cover" alt="">` : `<i data-lucide="${p.icon || 'box'}" class="w-6 h-6 text-gray-400"></i>`}
+                </div>
+                <div class="flex-grow min-w-0">
+                    <a href="product.html?id=${p.id}" class="text-sm font-semibold text-gray-900 hover:text-blue-600 truncate block no-underline">${p.name}</a>
+                    <div class="text-sm text-gray-500 mt-0.5">Qty: ${item.qty} × $${price.toFixed(2)}</div>
+                    <div class="text-sm font-bold text-gray-900 mt-1">$${lineTotal.toFixed(2)}</div>
+                </div>
+                <button onclick="removeFromCart(${p.id})" class="text-gray-400 hover:text-red-500 p-1 flex-shrink-0"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>`;
+        }).join('');
+        subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+        lucide.createIcons({ nodes: [container] });
+    }
+
+    // ===================== QUICK VIEW MODAL =====================
+    function openQuickView(productId) {
+        const p = PRODUCTS.find(pr => pr.id === productId);
+        if (!p) return;
+        const price = p.salePrice || p.price;
+        const isWished = wishlist.includes(p.id);
+        const content = document.getElementById('quickview-content');
+        content.innerHTML = `
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-1/2 bg-gray-100 flex items-center justify-center p-8 rounded-l-2xl min-h-[300px]">
+                    ${p.img ? `<img src="${p.img}" class="max-h-72 object-contain" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-24 h-24 text-gray-300"></i>`}
+                </div>
+                <div class="md:w-1/2 p-8">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs text-blue-600 font-semibold uppercase">${p.category.replace('-', ' ')}</span>
+                        <button onclick="closeQuickView()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">${p.name}</h2>
+                    ${p.badge ? `<span class="inline-block bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded mb-2">${p.badge}</span>` : ''}
+                    <p class="text-gray-500 text-sm mb-4">${p.desc}</p>
+                    <div class="flex items-baseline gap-2 mb-6">
+                        <span class="text-3xl font-extrabold text-gray-900">$${price.toFixed(2)}</span>
+                        ${p.salePrice ? `<span class="text-lg text-gray-400 line-through">$${p.price.toFixed(2)}</span><span class="text-sm font-bold text-red-600">Save $${(p.price - p.salePrice).toFixed(2)}</span>` : ''}
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-3">Technical Specs</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${Object.entries(p.specs).map(([k, v]) => `<div><span class="text-xs text-gray-400">${k}</span><div class="text-sm font-semibold text-gray-900">${v}</div></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="addToCart(${p.id}); closeQuickView();" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="shopping-cart" class="w-4 h-4"></i> Add to Cart
+                        </button>
+                        <button onclick="toggleWishlist(${p.id}); this.querySelector('i').classList.toggle('heart-active');" class="border border-gray-300 hover:border-red-300 hover:bg-red-50 p-3 rounded-lg transition-colors" title="Add to wishlist">
+                            <i data-lucide="heart" data-wishlist="${p.id}" class="w-5 h-5 ${isWished ? 'heart-active' : 'text-gray-400'}"></i>
+                        </button>
+                    </div>
+                    <a href="product.html?id=${p.id}" class="block text-center text-blue-600 text-sm font-semibold mt-4 hover:underline">View Full Details →</a>
+                </div>
+            </div>`;
+        document.getElementById('quickview-overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons({ nodes: [content] });
+    }
+    function closeQuickView() {
+        document.getElementById('quickview-overlay').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // ===================== RENDER FEATURED PRODUCTS =====================
+    function renderFeaturedProducts() {
+        const container = document.getElementById('featured-products');
+        const featured = PRODUCTS.slice(0, 8);
+        container.innerHTML = featured.map(p => {
+            const price = p.salePrice || p.price;
+            const isWished = wishlist.includes(p.id);
+            return `<div class="border border-gray-200 rounded-lg p-4 hover-card bg-white group relative">
+                <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+                    <button onclick="event.stopPropagation(); openQuickView(${p.id})" class="bg-white shadow-md rounded-full p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600" title="Quick View">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="event.stopPropagation(); toggleWishlist(${p.id})" class="bg-white shadow-md rounded-full p-2 hover:bg-red-50 text-gray-600 hover:text-red-500" title="Wishlist">
+                        <i data-lucide="heart" data-wishlist="${p.id}" class="w-4 h-4 ${isWished ? 'heart-active' : ''}"></i>
+                    </button>
+                </div>
+                ${p.badge ? `<span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded z-10">${p.badge}</span>` : ''}
+                <a href="product.html?id=${p.id}" class="block no-underline">
+                    <div class="bg-gray-100 rounded mb-4 overflow-hidden h-40 flex items-center justify-center">
+                        ${p.img ? `<img src="${p.img}" class="h-full object-contain" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-12 h-12 text-gray-400"></i>`}
+                    </div>
+                    <h3 class="font-semibold text-gray-900 text-sm truncate">${p.name}</h3>
+                    <p class="text-xs text-gray-500 mb-2">${p.category.charAt(0).toUpperCase() + p.category.slice(1).replace('-', ' ')}</p>
+                </a>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-lg ${p.salePrice ? 'text-red-600' : ''}">\$${price.toFixed(2)}</span>
+                        ${p.salePrice ? `<span class="text-xs text-gray-400 line-through ml-1">\$${p.price.toFixed(2)}</span>` : ''}
+                    </div>
+                    <button onclick="addToCart(${p.id})" class="bg-gray-900 text-white p-2 rounded hover:bg-blue-600 transition-colors" title="Add to Cart">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons({ nodes: [container] });
+    }
+
+    // ===================== MOBILE MENU =====================
+    function toggleMobileMenu() {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
+    }
+
+    // ===================== KEYBOARD SHORTCUTS =====================
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeQuickView();
+            closeMiniCart();
+            document.getElementById('search-dropdown').classList.add('hidden');
+        }
+        // Ctrl/Cmd + K to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.getElementById('search-input')?.focus();
+        }
+    });
+
+    // ===================== INIT =====================
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        updateCartBadge();
+        updateWishlistBadge();
+        renderFeaturedProducts();
+    });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Products | Arngren.net</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a202c;
+        }
+        
+        .hover-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .hover-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .heart-active {
+            color: #ef4444;
+            fill: #ef4444;
+        }
+        
+        @keyframes toastIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes toastOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .toast-enter {
+            animation: toastIn 0.3s ease-out forwards;
+        }
+        
+        .toast-exit {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .quickview-enter {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            height: 4px;
+            background: #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+    </style>
+</head>
+
+<body class="antialiased text-gray-800">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-24 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <!-- Quick View Modal -->
+    <div id="quickview-overlay" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4" onclick="if(event.target===this)closeQuickView()">
+        <div id="quickview-content" class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto quickview-enter"></div>
+    </div>
+
+    <!-- Mobile Filter Drawer -->
+    <div id="filter-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden" onclick="closeFilterDrawer()"></div>
+    <div id="filter-drawer" class="fixed top-0 left-0 h-full w-full max-w-sm bg-white shadow-2xl z-[61] transform -translate-x-full transition-transform duration-300 overflow-y-auto">
+        <div class="flex items-center justify-between p-4 border-b border-gray-100">
+            <h2 class="font-bold text-lg">Filters</h2>
+            <button onclick="closeFilterDrawer()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div id="mobile-filters" class="p-4"></div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="bg-gray-900 text-white text-xs py-2">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <span>🌍 Worldwide Shipping available — Free over $100</span>
+            <div class="flex gap-4">
+                <a href="#" class="hover:underline">Contact</a>
+                <a href="#" class="hover:underline">Support</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="index.html" class="flex-shrink-0 flex items-center cursor-pointer no-underline">
+                    <span class="text-3xl font-extrabold tracking-tighter text-gray-900">ARNGREN<span class="text-blue-600">.NET</span></span>
+                </a>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="category.html?cat=electronics" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors" data-nav="electronics">Electronics</a>
+                        <a href="category.html?cat=electric-vehicles" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors" data-nav="electric-vehicles">Electric Vehicles</a>
+                        <a href="category.html?cat=atv" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors" data-nav="atv">ATV & MC</a>
+                        <a href="category.html?cat=drones" class="text-gray-600 hover:text-blue-600 px-3 py-2 text-sm font-semibold transition-colors" data-nav="drones">Drones</a>
+                        <a href="category.html?cat=clearance" class="text-red-600 hover:text-red-700 px-3 py-2 text-sm font-bold transition-colors" data-nav="clearance">Clearance</a>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center gap-4">
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="Search catalog..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 w-64" oninput="handleSearch(this.value)">
+                        <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-2.5"></i>
+                    </div>
+                    <button onclick="window.location.href='category.html?wishlist=true'" class="text-gray-500 hover:text-red-500 relative transition-colors" title="Wishlist">
+                        <i data-lucide="heart" class="w-6 h-6"></i>
+                        <span id="wishlist-badge" class="absolute -top-1 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 rounded-full hidden">0</span>
+                    </button>
+                    <a href="shoppingcart.html" class="text-gray-700 hover:text-blue-600 relative no-underline">
+                        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                        <span id="cart-badge" class="absolute -top-1 -right-2 bg-blue-600 text-white text-xs font-bold px-1.5 rounded-full">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Breadcrumb -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <nav class="text-sm text-gray-500 flex items-center gap-2">
+                <a href="index.html" class="hover:text-blue-600">Home</a>
+                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                <span class="text-gray-900 font-semibold" id="bc-category">All Products</span>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Page Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900" id="page-title">All Products</h1>
+                <p class="text-sm text-gray-500 mt-1" id="results-count"></p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="openFilterDrawer()" class="md:hidden flex items-center gap-2 bg-white border border-gray-300 px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i> Filters
+                </button>
+                <select id="sort-select" onchange="applyFilters()" class="bg-white border border-gray-300 rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 focus:outline-none focus:border-blue-500">
+                    <option value="featured">Sort: Featured</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name-asc">Name: A-Z</option>
+                    <option value="name-desc">Name: Z-A</option>
+                    <option value="rating">Top Rated</option>
+                </select>
+                <div class="hidden md:flex items-center gap-1 border border-gray-300 rounded-lg overflow-hidden">
+                    <button onclick="setView('grid')" id="view-grid-btn" class="p-2 bg-blue-50 text-blue-600"><i data-lucide="grid-3x3" class="w-4 h-4"></i></button>
+                    <button onclick="setView('list')" id="view-list-btn" class="p-2 text-gray-400 hover:text-gray-700"><i data-lucide="list" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-8">
+            <!-- Sidebar Filters (Desktop) -->
+            <aside class="hidden md:block w-64 flex-shrink-0">
+                <div class="bg-white rounded-xl border border-gray-200 p-5 sticky top-24 space-y-6" id="desktop-filters">
+                    <!-- Filters rendered by JS -->
+                </div>
+            </aside>
+
+            <!-- Product Grid -->
+            <div class="flex-grow">
+                <!-- Active Filters -->
+                <div id="active-filters" class="flex flex-wrap gap-2 mb-4"></div>
+                <!-- Product Cards -->
+                <div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 gap-6"></div>
+                <!-- Empty state -->
+                <div id="empty-state" class="hidden text-center py-20">
+                    <div class="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i data-lucide="search-x" class="w-12 h-12 text-gray-300"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">No products found</h2>
+                    <p class="text-gray-500 mb-6">Try adjusting your filters or search terms.</p>
+                    <button onclick="clearAllFilters()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors">Clear All Filters</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 py-8 border-t border-gray-800 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <span class="text-lg font-bold text-white tracking-tight">ARNGREN<span class="text-blue-500">.NET</span></span>
+            <div class="text-xs text-gray-500">© 2026 Arngren.net. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        const PRODUCTS = [{
+            id: 1,
+            name: "DJI Mavic 3 Pro - Cine Premium",
+            category: "drones",
+            price: 2199,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            badge: "",
+            desc: "Professional cinema-grade drone with Hasselblad camera, 43-min flight time.",
+            specs: {
+                "Camera": "4/3 CMOS Hasselblad",
+                "Flight Time": "43 min",
+                "Range": "15 km",
+                "Weight": "958 g"
+            },
+            stock: true,
+            color: "Classic Grey",
+            motorPower: "High",
+            batteryType: "LiPo 4S",
+            rating: 4.8,
+            reviews: 234
+        }, {
+            id: 2,
+            name: "Sony WH-1000XM5",
+            category: "electronics",
+            price: 349,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/148192a53-e7a2-4723-91cc-ba57ab394698.png",
+            badge: "",
+            desc: "Industry-leading noise canceling headphones with 30-hour battery.",
+            specs: {
+                "Driver": "30mm Carbon Fiber",
+                "Battery": "30 hours",
+                "Bluetooth": "5.2",
+                "Weight": "250 g"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-ion",
+            rating: 4.7,
+            reviews: 1892
+        }, {
+            id: 3,
+            name: "Urban E-Scooter X",
+            category: "electric-vehicles",
+            price: 599,
+            salePrice: 499,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1c7b2f449-df6f-42a9-a47f-b5d7b849cbcd.png",
+            badge: "SALE",
+            desc: "Foldable electric scooter with 40km range and 25 km/h top speed.",
+            specs: {
+                "Motor": "350W Brushless",
+                "Range": "40 km",
+                "Speed": "25 km/h",
+                "Weight": "14.2 kg"
+            },
+            stock: true,
+            color: "Matte Black",
+            motorPower: "350W",
+            batteryType: "Li-ion 36V",
+            rating: 4.5,
+            reviews: 567
+        }, {
+            id: 4,
+            name: "Fast Home Charger",
+            category: "accessories",
+            price: 199,
+            img: "",
+            icon: "zap",
+            badge: "",
+            desc: "Universal fast charger, Level 2, 240V, 32A output for EVs.",
+            specs: {
+                "Power": "7.68 kW",
+                "Voltage": "240V",
+                "Cable": "25 ft",
+                "Connector": "J1772"
+            },
+            stock: true,
+            color: "White",
+            motorPower: "",
+            batteryType: "",
+            rating: 4.6,
+            reviews: 89
+        }, {
+            id: 5,
+            name: "Power Bank Pro 20000",
+            category: "electronics",
+            price: 49,
+            img: "",
+            icon: "battery-charging",
+            badge: "",
+            desc: "20,000mAh portable charger with 65W USB-C PD output.",
+            specs: {
+                "Capacity": "20,000 mAh",
+                "Output": "65W USB-C PD",
+                "Ports": "3 total",
+                "Weight": "340 g"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-Polymer",
+            rating: 4.4,
+            reviews: 2103
+        }, {
+            id: 6,
+            name: "AA Lithium Batteries (4-Pack)",
+            category: "accessories",
+            price: 12,
+            img: "",
+            icon: "battery",
+            badge: "",
+            desc: "Energizer lithium AA batteries, 20-year shelf life.",
+            specs: {
+                "Type": "Lithium AA",
+                "Count": "4 pack",
+                "Voltage": "1.5V",
+                "Shelf Life": "20 years"
+            },
+            stock: true,
+            color: "",
+            motorPower: "",
+            batteryType: "Lithium",
+            rating: 4.3,
+            reviews: 4521
+        }, {
+            id: 7,
+            name: "Explorer ATV 4x4",
+            category: "atv",
+            price: 4999,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/142605fb5-e552-40a8-b4a5-ecd62b33bb4a.png",
+            badge: "",
+            desc: "Full-size 4x4 ATV with 570cc engine and electronic fuel injection.",
+            specs: {
+                "Engine": "570cc",
+                "Drive": "4x4",
+                "Towing": "1,225 lbs",
+                "Fuel Tank": "5.4 gal"
+            },
+            stock: true,
+            color: "Army Green",
+            motorPower: "570cc",
+            batteryType: "",
+            rating: 4.9,
+            reviews: 45
+        }, {
+            id: 8,
+            name: "Mountain E-Bike 750W",
+            category: "electric-vehicles",
+            price: 1899,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1d3943a3a-5d24-4b09-bc61-1da3f217fd2b.png",
+            badge: "NEW",
+            desc: "Full-suspension electric mountain bike with 750W motor and 100km range.",
+            specs: {
+                "Motor": "750W Mid-drive",
+                "Battery": "720Wh",
+                "Range": "100 km",
+                "Gears": "11-speed"
+            },
+            stock: true,
+            color: "Forest Green",
+            motorPower: "750W",
+            batteryType: "Li-ion 48V",
+            rating: 4.7,
+            reviews: 128
+        }, {
+            id: 9,
+            name: "Racing Drone FPV Kit",
+            category: "drones",
+            price: 699,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            badge: "",
+            desc: "Complete FPV racing drone kit with goggles, controller, and 3 batteries.",
+            specs: {
+                "Speed": "120 km/h",
+                "Camera": "1080p 60fps",
+                "Flight Time": "8 min",
+                "Batteries": "3 included"
+            },
+            stock: true,
+            color: "Carbon",
+            motorPower: "2400KV",
+            batteryType: "LiPo 4S",
+            rating: 4.6,
+            reviews: 312
+        }, {
+            id: 10,
+            name: "Smart Home Hub Pro",
+            category: "electronics",
+            price: 129,
+            img: "",
+            icon: "home",
+            badge: "NEW",
+            desc: "Central hub for all smart devices. Supports Zigbee, Z-Wave, Matter, WiFi 6E.",
+            specs: {
+                "Protocols": "Zigbee, Z-Wave, Matter",
+                "WiFi": "WiFi 6E",
+                "Display": "7-inch",
+                "Voice": "Alexa + Google"
+            },
+            stock: true,
+            color: "White",
+            motorPower: "",
+            batteryType: "",
+            rating: 4.2,
+            reviews: 67
+        }, {
+            id: 11,
+            name: "Solar Panel Kit 400W",
+            category: "accessories",
+            price: 599,
+            img: "",
+            icon: "sun",
+            badge: "",
+            desc: "Portable 400W solar panel kit with inverter for RVs and camping.",
+            specs: {
+                "Output": "400W Peak",
+                "Panels": "2x 200W",
+                "Inverter": "1000W",
+                "Warranty": "25 years"
+            },
+            stock: true,
+            color: "",
+            motorPower: "",
+            batteryType: "Solar",
+            rating: 4.5,
+            reviews: 203
+        }, {
+            id: 12,
+            name: "GPS Tracker Pro",
+            category: "electronics",
+            price: 79,
+            img: "",
+            icon: "map-pin",
+            badge: "",
+            desc: "Real-time GPS tracker with 4G LTE, 2-week battery, geofencing.",
+            specs: {
+                "Network": "4G LTE",
+                "Battery": "2 weeks",
+                "Accuracy": "2.5m",
+                "Waterproof": "IP67"
+            },
+            stock: true,
+            color: "Black",
+            motorPower: "",
+            batteryType: "Li-ion",
+            rating: 4.1,
+            reviews: 891
+        }, ];
+
+        const CATEGORIES = {
+            'electronics': 'Electronics',
+            'electric-vehicles': 'Electric Vehicles',
+            'atv': 'ATV & MC',
+            'drones': 'Drones',
+            'accessories': 'Accessories',
+            'clearance': 'Clearance'
+        };
+
+        let cart = JSON.parse(localStorage.getItem('arngren_cart') || '[]');
+        let wishlist = JSON.parse(localStorage.getItem('arngren_wishlist') || '[]');
+        let currentView = 'grid';
+
+        // Filters state
+        let filters = {
+            category: '',
+            priceMin: 0,
+            priceMax: 10000,
+            motorPower: [],
+            batteryType: [],
+            search: ''
+        };
+
+        function saveCart() {
+            localStorage.setItem('arngren_cart', JSON.stringify(cart));
+            updateCartBadge();
+        }
+
+        function saveWishlist() {
+            localStorage.setItem('arngren_wishlist', JSON.stringify(wishlist));
+            updateWishlistBadge();
+        }
+
+        function updateCartBadge() {
+            const t = cart.reduce((s, i) => s + i.qty, 0);
+            const b = document.getElementById('cart-badge');
+            b.textContent = t;
+            b.classList.toggle('hidden', t === 0);
+        }
+
+        function updateWishlistBadge() {
+            const b = document.getElementById('wishlist-badge');
+            b.textContent = wishlist.length;
+            b.classList.toggle('hidden', wishlist.length === 0);
+        }
+
+        function showToast(message, type = 'success') {
+            const c = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info'
+            };
+            t.className = `${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-enter min-w-[300px]`;
+            t.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm font-medium flex-grow">${message}</span>`;
+            c.appendChild(t);
+            lucide.createIcons({
+                nodes: [t]
+            });
+            setTimeout(() => {
+                t.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => t.remove(), 300);
+            }, 3000);
+        }
+
+        function addToCart(productId) {
+            const p = PRODUCTS.find(pr => pr.id === productId);
+            if (!p) return;
+            const existing = cart.find(i => i.id === productId);
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({
+                    id: productId,
+                    qty: 1
+                });
+            }
+            saveCart();
+            showToast(`${p.name} added to cart!`, 'success');
+        }
+
+        function toggleWishlist(productId) {
+            const idx = wishlist.indexOf(productId);
+            if (idx > -1) {
+                wishlist.splice(idx, 1);
+            } else {
+                wishlist.push(productId);
+            }
+            saveWishlist();
+            document.querySelectorAll(`[data-wishlist="${productId}"]`).forEach(el => el.classList.toggle('heart-active', wishlist.includes(productId)));
+            const p = PRODUCTS.find(pr => pr.id === productId);
+            showToast(wishlist.includes(productId) ? `${p.name} added to wishlist` : 'Removed from wishlist', 'info');
+        }
+
+        function renderStars(rating) {
+            const full = Math.floor(rating);
+            return '<i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-yellow-400"></i>'.repeat(full) +
+                '<i data-lucide="star" class="w-3 h-3 text-gray-300"></i>'.repeat(5 - full);
+        }
+
+        // ===================== FILTERS =====================
+        function renderFilters() {
+            const allMotorPowers = [...new Set(PRODUCTS.map(p => p.motorPower).filter(Boolean))];
+            const allBatteryTypes = [...new Set(PRODUCTS.map(p => p.batteryType).filter(Boolean))];
+            const maxPrice = Math.max(...PRODUCTS.map(p => p.price));
+
+            const html = `
+            <!-- Categories -->
+            <div>
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Category</h3>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer text-sm ${!filters.category ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}">
+                        <input type="radio" name="category" value="" ${!filters.category ? 'checked' : ''} onchange="filters.category=''; applyFilters()" class="accent-blue-600"> All Products
+                    </label>
+                    ${Object.entries(CATEGORIES).map(([key, label]) => {
+                        const count = PRODUCTS.filter(p => key === 'clearance' ? p.salePrice : p.category === key).length;
+                        return `<label class="flex items-center gap-2 cursor-pointer text-sm ${filters.category === key ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}">
+                            <input type="radio" name="category" value="${key}" ${filters.category === key ? 'checked' : ''} onchange="filters.category='${key}'; applyFilters()" class="accent-blue-600"> ${label} <span class="text-xs text-gray-400">(${count})</span>
+                        </label>`;
+                    }).join('')}
+                </div>
+            </div>
+
+            <!-- Price Range -->
+            <div class="border-t border-gray-100 pt-6">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Price Range</h3>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="flex-1"><input type="number" id="price-min" value="${filters.priceMin}" min="0" max="${maxPrice}" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" onchange="filters.priceMin=parseInt(this.value)||0; applyFilters()" placeholder="Min"></div>
+                    <span class="text-gray-400">—</span>
+                    <div class="flex-1"><input type="number" id="price-max" value="${filters.priceMax}" min="0" max="${maxPrice}" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-500" onchange="filters.priceMax=parseInt(this.value)||${maxPrice}; applyFilters()" placeholder="Max"></div>
+                </div>
+                <input type="range" min="0" max="${maxPrice}" value="${filters.priceMax}" class="w-full" oninput="filters.priceMax=parseInt(this.value); document.getElementById('price-max').value=this.value; applyFilters()">
+            </div>
+
+            ${allMotorPowers.length > 0 ? `
+            <!-- Motor Power -->
+            <div class="border-t border-gray-100 pt-6">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Motor / Power</h3>
+                <div class="space-y-2">
+                    ${allMotorPowers.map(mp => `<label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
+                        <input type="checkbox" value="${mp}" ${filters.motorPower.includes(mp)?'checked':''} onchange="toggleFilter('motorPower','${mp}')" class="accent-blue-600 rounded"> ${mp}
+                    </label>`).join('')}
+                </div>
+            </div>` : ''}
+
+            ${allBatteryTypes.length > 0 ? `
+            <!-- Battery Type -->
+            <div class="border-t border-gray-100 pt-6">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Battery Type</h3>
+                <div class="space-y-2">
+                    ${allBatteryTypes.map(bt => `<label class="flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
+                        <input type="checkbox" value="${bt}" ${filters.batteryType.includes(bt)?'checked':''} onchange="toggleFilter('batteryType','${bt}')" class="accent-blue-600 rounded"> ${bt}
+                    </label>`).join('')}
+                </div>
+            </div>` : ''}
+
+            <!-- Clear Filters -->
+            <div class="border-t border-gray-100 pt-4">
+                <button onclick="clearAllFilters()" class="w-full text-center text-sm text-red-500 hover:text-red-700 font-semibold">Clear All Filters</button>
+            </div>
+        `;
+        document.getElementById('desktop-filters').innerHTML = html;
+        document.getElementById('mobile-filters').innerHTML = html;
+        lucide.createIcons({ nodes: [document.getElementById('desktop-filters'), document.getElementById('mobile-filters')] });
+    }
+
+    function toggleFilter(filterKey, value) {
+        const arr = filters[filterKey];
+        const idx = arr.indexOf(value);
+        if (idx > -1) arr.splice(idx, 1); else arr.push(value);
+        applyFilters();
+    }
+
+    function clearAllFilters() {
+        filters = { category: '', priceMin: 0, priceMax: 10000, motorPower: [], batteryType: [], search: '' };
+        document.getElementById('search-input').value = '';
+        renderFilters();
+        applyFilters();
+    }
+
+    function handleSearch(value) {
+        filters.search = value.toLowerCase();
+        applyFilters();
+    }
+
+    // ===================== FILTER & SORT =====================
+    function getFilteredProducts() {
+        let products = [...PRODUCTS];
+        const params = new URLSearchParams(window.location.search);
+        const wishlistMode = params.get('wishlist') === 'true';
+
+        if (wishlistMode) {
+            products = products.filter(p => wishlist.includes(p.id));
+        }
+
+        if (filters.category) {
+            if (filters.category === 'clearance') {
+                products = products.filter(p => p.salePrice);
+            } else {
+                products = products.filter(p => p.category === filters.category);
+            }
+        }
+        if (filters.search) {
+            products = products.filter(p => p.name.toLowerCase().includes(filters.search) || p.desc.toLowerCase().includes(filters.search) || p.category.toLowerCase().includes(filters.search));
+        }
+        products = products.filter(p => {
+            const price = p.salePrice || p.price;
+            return price >= filters.priceMin && price <= filters.priceMax;
+        });
+        if (filters.motorPower.length > 0) {
+            products = products.filter(p => p.motorPower && filters.motorPower.includes(p.motorPower));
+        }
+        if (filters.batteryType.length > 0) {
+            products = products.filter(p => p.batteryType && filters.batteryType.includes(p.batteryType));
+        }
+
+        // Sort
+        const sort = document.getElementById('sort-select').value;
+        switch (sort) {
+            case 'price-asc': products.sort((a, b) => (a.salePrice||a.price) - (b.salePrice||b.price)); break;
+            case 'price-desc': products.sort((a, b) => (b.salePrice||b.price) - (a.salePrice||a.price)); break;
+            case 'name-asc': products.sort((a, b) => a.name.localeCompare(b.name)); break;
+            case 'name-desc': products.sort((a, b) => b.name.localeCompare(a.name)); break;
+            case 'rating': products.sort((a, b) => b.rating - a.rating); break;
+        }
+        return products;
+    }
+
+    function applyFilters() {
+        const products = getFilteredProducts();
+        renderProducts(products);
+        renderActiveFilters();
+    }
+
+    // ===================== RENDER PRODUCTS =====================
+    function renderProducts(products) {
+        const grid = document.getElementById('product-grid');
+        const empty = document.getElementById('empty-state');
+        const count = document.getElementById('results-count');
+        count.textContent = `${products.length} product${products.length !== 1 ? 's' : ''} found`;
+
+        if (products.length === 0) {
+            grid.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        grid.classList.remove('hidden');
+        empty.classList.add('hidden');
+
+        if (currentView === 'grid') {
+            grid.className = 'grid grid-cols-2 md:grid-cols-3 gap-6';
+            grid.innerHTML = products.map(p => {
+                const price = p.salePrice || p.price;
+                const isWished = wishlist.includes(p.id);
+                return `<div class="border border-gray-200 rounded-lg p-4 hover-card bg-white group relative">
+                    <div class="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+                        <button onclick="event.preventDefault(); openQuickView(${p.id})" class="bg-white shadow-md rounded-full p-2 hover:bg-blue-50 text-gray-600 hover:text-blue-600" title="Quick View">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="event.preventDefault(); toggleWishlist(${p.id})" class="bg-white shadow-md rounded-full p-2 hover:bg-red-50 text-gray-600 hover:text-red-500" title="Wishlist">
+                            <i data-lucide="heart" data-wishlist="${p.id}" class="w-4 h-4 ${isWished ? 'heart-active' : ''}"></i>
+                        </button>
+                    </div>
+                    ${p.badge ? `<span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded z-10">${p.badge}</span>` : ''}
+                    <a href="product.html?id=${p.id}" class="block no-underline">
+                        <div class="bg-gray-100 rounded mb-4 overflow-hidden h-40 flex items-center justify-center">
+                            ${p.img ? `<img src="${p.img}" class="h-full object-contain" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-12 h-12 text-gray-400"></i>`}
+                        </div>
+                        <h3 class="font-semibold text-gray-900 text-sm truncate mb-1">${p.name}</h3>
+                        <div class="flex items-center gap-1 mb-2">${renderStars(p.rating)}<span class="text-xs text-gray-400">(${p.reviews})</span></div>
+                    </a>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-lg ${p.salePrice ? 'text-red-600' : ''}">\$${price.toFixed(2)}</span>
+                            ${p.salePrice ? `<span class="text-xs text-gray-400 line-through ml-1">\$${p.price.toFixed(2)}</span>` : ''}
+                        </div>
+                        <button onclick="addToCart(${p.id})" class="bg-gray-900 text-white p-2 rounded hover:bg-blue-600 transition-colors" title="Add to Cart">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            grid.className = 'space-y-4';
+            grid.innerHTML = products.map(p => {
+                const price = p.salePrice || p.price;
+                const isWished = wishlist.includes(p.id);
+                return `<div class="flex gap-6 bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow items-center">
+                    <a href="product.html?id=${p.id}" class="w-32 h-32 bg-gray-100 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        ${p.img ? `<img src="${p.img}" class="w-full h-full object-cover" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-10 h-10 text-gray-400"></i>`}
+                    </a>
+                    <div class="flex-grow min-w-0">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                ${p.badge ? `<span class="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded inline-block mb-1">${p.badge}</span>` : ''}
+                                <a href="product.html?id=${p.id}" class="text-lg font-bold text-gray-900 hover:text-blue-600 no-underline block">${p.name}</a>
+                                <p class="text-sm text-gray-500 mt-1 line-clamp-2">${p.desc}</p>
+                                <div class="flex items-center gap-1 mt-2">${renderStars(p.rating)}<span class="text-xs text-gray-400 ml-1">(${p.reviews} reviews)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                        <span class="font-bold text-xl ${p.salePrice ? 'text-red-600' : 'text-gray-900'}">\$${price.toFixed(2)}</span>
+                        ${p.salePrice ? `<span class="text-sm text-gray-400 line-through">\$${p.price.toFixed(2)}</span>` : ''}
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="openQuickView(${p.id})" class="border border-gray-300 hover:border-blue-500 text-gray-600 hover:text-blue-600 p-2 rounded-lg transition-colors" title="Quick View"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                            <button onclick="toggleWishlist(${p.id})" class="border border-gray-300 hover:border-red-300 text-gray-600 hover:text-red-500 p-2 rounded-lg transition-colors" title="Wishlist"><i data-lucide="heart" data-wishlist="${p.id}" class="w-4 h-4 ${isWished ? 'heart-active' : ''}"></i></button>
+                            <button onclick="addToCart(${p.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-semibold">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        lucide.createIcons({ nodes: [grid] });
+    }
+
+    function renderActiveFilters() {
+        const container = document.getElementById('active-filters');
+        const tags = [];
+        if (filters.category) tags.push({ label: CATEGORIES[filters.category] || filters.category, remove: () => { filters.category = ''; renderFilters(); applyFilters(); } });
+        if (filters.search) tags.push({ label: `Search: "${filters.search}"`, remove: () => { filters.search = ''; document.getElementById('search-input').value = ''; applyFilters(); } });
+        if (filters.priceMax < 10000) tags.push({ label: `Under $${filters.priceMax}`, remove: () => { filters.priceMax = 10000; renderFilters(); applyFilters(); } });
+        filters.motorPower.forEach(mp => tags.push({ label: `Motor: ${mp}`, remove: () => { toggleFilter('motorPower', mp); renderFilters(); } }));
+        filters.batteryType.forEach(bt => tags.push({ label: `Battery: ${bt}`, remove: () => { toggleFilter('batteryType', bt); renderFilters(); } }));
+
+        container.innerHTML = tags.map((tag, i) => `<span class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1">${tag.label}<button onclick="activeFilterRemove(${i})" class="hover:text-blue-900">&times;</button></span>`).join('');
+        window._activeFilterTags = tags;
+    }
+    function activeFilterRemove(idx) { window._activeFilterTags[idx]?.remove(); }
+
+    // ===================== QUICK VIEW =====================
+    function openQuickView(productId) {
+        const p = PRODUCTS.find(pr => pr.id === productId); if (!p) return;
+        const price = p.salePrice || p.price;
+        const isWished = wishlist.includes(p.id);
+        const c = document.getElementById('quickview-content');
+        c.innerHTML = `
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-1/2 bg-gray-100 flex items-center justify-center p-8 rounded-l-2xl min-h-[300px]">
+                    ${p.img ? `<img src="${p.img}" class="max-h-72 object-contain" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-24 h-24 text-gray-300"></i>`}
+                </div>
+                <div class="md:w-1/2 p-8">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs text-blue-600 font-semibold uppercase">${p.category.replace('-',' ')}</span>
+                        <button onclick="closeQuickView()" class="text-gray-400 hover:text-gray-700"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">${p.name}</h2>
+                    ${p.badge ? `<span class="inline-block bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded mb-2">${p.badge}</span>` : ''}
+                    <div class="flex items-center gap-1 mb-3">${renderStars(p.rating)}<span class="text-sm text-gray-400 ml-1">(${p.reviews})</span></div>
+                    <p class="text-gray-500 text-sm mb-4">${p.desc}</p>
+                    <div class="flex items-baseline gap-2 mb-6">
+                        <span class="text-3xl font-extrabold text-gray-900">\$${price.toFixed(2)}</span>
+                        ${p.salePrice ? `<span class="text-lg text-gray-400 line-through">\$${p.price.toFixed(2)}</span>` : ''}
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-3">Key Specs</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${Object.entries(p.specs).map(([k, v]) => `<div><span class="text-xs text-gray-400">${k}</span><div class="text-sm font-semibold text-gray-900">${v}</div></div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="addToCart(${p.id}); closeQuickView();" class="flex-grow bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="shopping-cart" class="w-4 h-4"></i> Add to Cart
+                        </button>
+                        <button onclick="toggleWishlist(${p.id})" class="border border-gray-300 hover:border-red-300 hover:bg-red-50 p-3 rounded-lg transition-colors">
+                            <i data-lucide="heart" data-wishlist="${p.id}" class="w-5 h-5 ${isWished ? 'heart-active' : 'text-gray-400'}"></i>
+                        </button>
+                    </div>
+                    <a href="product.html?id=${p.id}" class="block text-center text-blue-600 text-sm font-semibold mt-4 hover:underline">View Full Details →</a>
+                </div>
+            </div>`;
+        document.getElementById('quickview-overlay').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons({ nodes: [c] });
+    }
+    function closeQuickView() {
+        document.getElementById('quickview-overlay').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // ===================== VIEW TOGGLE =====================
+    function setView(view) {
+        currentView = view;
+        document.getElementById('view-grid-btn').className = `p-2 ${view==='grid' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-700'}`;
+        document.getElementById('view-list-btn').className = `p-2 ${view==='list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400 hover:text-gray-700'}`;
+        applyFilters();
+    }
+
+    // ===================== MOBILE FILTER DRAWER =====================
+    function openFilterDrawer() {
+        document.getElementById('filter-overlay').classList.remove('hidden');
+        document.getElementById('filter-drawer').classList.remove('-translate-x-full');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeFilterDrawer() {
+        document.getElementById('filter-overlay').classList.add('hidden');
+        document.getElementById('filter-drawer').classList.add('-translate-x-full');
+        document.body.style.overflow = '';
+    }
+
+    // ===================== INIT =====================
+    document.addEventListener('DOMContentLoaded', () => {
+        lucide.createIcons();
+        updateCartBadge();
+        updateWishlistBadge();
+
+        const params = new URLSearchParams(window.location.search);
+        const cat = params.get('cat');
+        const q = params.get('q');
+        const wishlistMode = params.get('wishlist') === 'true';
+
+        if (cat) {
+            filters.category = cat;
+            const label = CATEGORIES[cat] || cat;
+            document.getElementById('page-title').textContent = label;
+            document.getElementById('bc-category').textContent = label;
+            document.title = `${label} | Arngren.net`;
+            // Highlight active nav
+            document.querySelectorAll(`[data-nav="${cat}"]`).forEach(el => el.classList.add('text-blue-600'));
+        }
+        if (q) {
+            filters.search = q;
+            document.getElementById('search-input').value = q;
+            document.getElementById('page-title').textContent = `Search: "${q}"`;
+            document.getElementById('bc-category').textContent = `Search Results`;
+        }
+        if (wishlistMode) {
+            document.getElementById('page-title').textContent = 'My Wishlist';
+            document.getElementById('bc-category').textContent = 'Wishlist';
+            document.title = 'Wishlist | Arngren.net';
+        }
+
+        renderFilters();
+        applyFilters();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeQuickView(); closeFilterDrawer(); }
+    });
+    </script>
+</body>
+
+</html>

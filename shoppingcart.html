@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopping Cart | Arngren.net</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #1a202c;
+        }
+        
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        @keyframes toastIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes toastOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .toast-enter {
+            animation: toastIn 0.3s ease-out forwards;
+        }
+        
+        .toast-exit {
+            animation: toastOut 0.3s ease-in forwards;
+        }
+        
+        @keyframes shake {
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+            25% {
+                transform: translateX(-4px);
+            }
+            75% {
+                transform: translateX(4px);
+            }
+        }
+        
+        .shake {
+            animation: shake 0.3s ease;
+        }
+        
+        @keyframes progressPulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
+        .progress-animate {
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+
+<body class="antialiased text-gray-800 flex flex-col min-h-screen">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-24 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <!-- Confirm Remove Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 z-[80] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="trash-2" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Remove Item?</h3>
+            <p class="text-sm text-gray-500 mb-6" id="confirm-modal-text">Are you sure you want to remove this item from your cart?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-lg transition-colors">Cancel</button>
+                <button id="confirm-remove-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-lg transition-colors">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="index.html" class="flex-shrink-0 flex items-center cursor-pointer no-underline">
+                    <span class="text-3xl font-extrabold tracking-tighter text-gray-900">
+                        ARNGREN<span class="text-blue-600">.NET</span>
+                    </span>
+                </a>
+                <!-- Checkout Steps -->
+                <div class="hidden md:flex items-center gap-2 text-sm">
+                    <div class="flex items-center gap-1.5 text-blue-600 font-semibold">
+                        <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span> Cart
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
+                    <div class="flex items-center gap-1.5 text-gray-400">
+                        <span class="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span> Shipping
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-300"></i>
+                    <div class="flex items-center gap-1.5 text-gray-400">
+                        <span class="bg-gray-200 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">3</span> Payment
+                    </div>
+                </div>
+                <!-- Secure -->
+                <div class="flex items-center gap-2 text-green-700 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                    <i data-lucide="lock" class="w-4 h-4"></i>
+                    <span class="text-xs font-bold uppercase tracking-wide">Secure Checkout</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Your Shopping Cart</h1>
+            <span id="cart-item-count" class="text-sm text-gray-500"></span>
+        </div>
+
+        <!-- Empty Cart State -->
+        <div id="empty-cart" class="hidden text-center py-20">
+            <div class="bg-gray-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="shopping-cart" class="w-12 h-12 text-gray-300"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Your cart is empty</h2>
+            <p class="text-gray-500 mb-8">Looks like you haven't added any gadgets yet.</p>
+            <a href="index.html" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors no-underline">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> Start Shopping
+            </a>
+        </div>
+
+        <div id="cart-content" class="flex flex-col lg:flex-row gap-12">
+
+            <!-- LEFT COLUMN: Cart Items -->
+            <div class="lg:w-2/3">
+
+                <!-- Free Shipping Progress Bar -->
+                <div id="shipping-progress" class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex items-center gap-4">
+                    <div class="bg-white p-2 rounded-full text-blue-600 flex-shrink-0">
+                        <i data-lucide="truck" class="w-6 h-6"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="text-sm font-semibold mb-1" id="shipping-progress-text"></p>
+                        <div class="w-full bg-blue-200 rounded-full h-2.5">
+                            <div id="shipping-progress-bar" class="bg-blue-600 h-2.5 rounded-full progress-animate" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cart Header -->
+                <div class="hidden md:grid grid-cols-12 gap-4 border-b border-gray-200 pb-4 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                    <div class="col-span-6">Product</div>
+                    <div class="col-span-2 text-center">Price</div>
+                    <div class="col-span-2 text-center">Quantity</div>
+                    <div class="col-span-2 text-right">Total</div>
+                </div>
+
+                <!-- Cart Items Container -->
+                <div id="cart-items-container"></div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
+                    <a href="index.html" class="text-blue-600 font-semibold flex items-center gap-2 hover:underline no-underline">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Continue Shopping
+                    </a>
+                    <button onclick="clearCart()" class="text-gray-400 hover:text-red-500 text-sm font-semibold flex items-center gap-1 transition-colors">
+                        <i data-lucide="trash" class="w-4 h-4"></i> Clear Cart
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Order Summary -->
+            <div class="lg:w-1/3">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
+                    <h2 class="text-lg font-bold text-gray-900 mb-6 pb-4 border-b border-gray-100">Order Summary</h2>
+
+                    <!-- Costs -->
+                    <div class="space-y-4 mb-6">
+                        <div class="flex justify-between text-gray-600">
+                            <span>Subtotal</span>
+                            <span id="summary-subtotal">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Shipping</span>
+                            <span id="summary-shipping">Calculated below</span>
+                        </div>
+                        <div id="discount-row" class="flex justify-between text-green-600 hidden">
+                            <span>Discount</span>
+                            <span id="summary-discount">-$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-gray-600">
+                            <span>Tax (VAT 25%)</span>
+                            <span id="summary-tax">$0.00</span>
+                        </div>
+
+                        <!-- Shipping Estimator -->
+                        <div class="pt-4 border-t border-gray-100">
+                            <label class="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
+                                <i data-lucide="map-pin" class="w-3 h-3"></i> Shipping Estimator
+                            </label>
+                            <div class="flex gap-2 mt-2">
+                                <input type="text" id="zip-input" placeholder="ZIP / Postal Code" maxlength="10" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" oninput="this.value = this.value.replace(/[^0-9-]/g, '')">
+                                <button onclick="calculateShipping()" class="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-gray-700 flex-shrink-0 transition-colors">
+                                    Calc
+                                </button>
+                            </div>
+                            <div id="shipping-result" class="hidden mt-3 text-sm"></div>
+                        </div>
+
+                        <!-- Promo Code -->
+                        <div class="pt-4 border-t border-gray-100">
+                            <label class="text-xs font-semibold text-gray-500 uppercase">Promo Code</label>
+                            <div class="flex gap-2 mt-1">
+                                <input type="text" id="promo-input" placeholder="Enter code" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 uppercase" onkeydown="if(event.key==='Enter') applyPromo()">
+                                <button onclick="applyPromo()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded text-sm font-bold hover:bg-gray-300 transition-colors flex-shrink-0">Apply</button>
+                            </div>
+                            <div id="promo-result" class="hidden mt-2 text-sm"></div>
+                        </div>
+                    </div>
+
+                    <!-- Total -->
+                    <div class="border-t border-gray-200 pt-4 mb-6">
+                        <div class="flex justify-between items-end">
+                            <span class="text-gray-900 font-bold">Total</span>
+                            <span id="summary-total" class="text-2xl font-extrabold text-gray-900">$0.00</span>
+                        </div>
+                        <p class="text-right text-xs text-gray-400 mt-1">Including all taxes & duties</p>
+                    </div>
+
+                    <!-- Checkout Button -->
+                    <a href="checkout.html" id="checkout-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mb-4 no-underline">
+                        Proceed to Checkout <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </a>
+
+                    <!-- Payment Icons -->
+                    <div class="flex justify-center gap-4 text-gray-400 mt-4">
+                        <i data-lucide="credit-card" class="w-6 h-6"></i>
+                        <span class="text-xs font-mono border border-gray-300 rounded px-1.5 py-0.5 flex items-center">VISA</span>
+                        <span class="text-xs font-mono border border-gray-300 rounded px-1.5 py-0.5 flex items-center">MC</span>
+                        <span class="text-xs font-mono border border-gray-300 rounded px-1.5 py-0.5 flex items-center">PAYPAL</span>
+                    </div>
+
+                    <p class="text-center text-xs text-gray-400 mt-4">
+                        <i data-lucide="shield-check" class="w-3 h-3 inline mr-1"></i> 30-Day Money-Back Guarantee
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Recently Viewed -->
+    <section id="recently-viewed-section" class="py-12 bg-white border-t border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">You Might Also Like</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="suggested-products"></div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 py-8 border-t border-gray-800 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <span class="text-lg font-bold text-white tracking-tight">ARNGREN<span class="text-blue-500">.NET</span></span>
+            <div class="text-xs text-gray-500">© 2026 Arngren.net. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        // ===================== PRODUCT DATABASE (shared) =====================
+        const PRODUCTS = [{
+            id: 1,
+            name: "DJI Mavic 3 Pro - Cine Premium",
+            category: "drones",
+            price: 2199,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            icon: "",
+            desc: "Professional cinema-grade drone",
+            color: "Classic Grey",
+            warranty: "2 Year Arngren Care+"
+        }, {
+            id: 2,
+            name: "Sony WH-1000XM5",
+            category: "electronics",
+            price: 349,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/148192a53-e7a2-4723-91cc-ba57ab394698.png",
+            icon: "",
+            desc: "Noise canceling headphones",
+            color: "Black",
+            stock: "In Stock - Ships Tomorrow"
+        }, {
+            id: 3,
+            name: "Urban E-Scooter X",
+            category: "electric-vehicles",
+            price: 599,
+            salePrice: 499,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1c7b2f449-df6f-42a9-a47f-b5d7b849cbcd.png",
+            icon: "",
+            desc: "Foldable electric scooter",
+            color: "Matte Black"
+        }, {
+            id: 4,
+            name: "Fast Home Charger",
+            category: "accessories",
+            price: 199,
+            img: "",
+            icon: "zap",
+            desc: "Universal fast charger"
+        }, {
+            id: 5,
+            name: "Power Bank Pro 20000",
+            category: "electronics",
+            price: 49,
+            img: "",
+            icon: "battery-charging",
+            desc: "20,000mAh portable charger"
+        }, {
+            id: 6,
+            name: "AA Lithium Batteries (4-Pack)",
+            category: "accessories",
+            price: 12,
+            img: "",
+            icon: "battery",
+            desc: "Energizer lithium AA batteries"
+        }, {
+            id: 7,
+            name: "Explorer ATV 4x4",
+            category: "atv",
+            price: 4999,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/142605fb5-e552-40a8-b4a5-ecd62b33bb4a.png",
+            icon: "",
+            desc: "Full-size 4x4 ATV"
+        }, {
+            id: 8,
+            name: "Mountain E-Bike 750W",
+            category: "electric-vehicles",
+            price: 1899,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1d3943a3a-5d24-4b09-bc61-1da3f217fd2b.png",
+            icon: "",
+            desc: "Electric mountain bike"
+        }, {
+            id: 9,
+            name: "Racing Drone FPV Kit",
+            category: "drones",
+            price: 699,
+            img: "https://image.qwenlm.ai/public_source/32d72af3-5c7b-437a-8259-f23a4302fd44/1db99e685-cbac-42b2-9c28-cd82aac62b24.png",
+            icon: "",
+            desc: "Complete FPV racing drone kit"
+        }, {
+            id: 10,
+            name: "Smart Home Hub Pro",
+            category: "electronics",
+            price: 129,
+            img: "",
+            icon: "home",
+            desc: "Central smart home hub"
+        }, {
+            id: 11,
+            name: "Solar Panel Kit 400W",
+            category: "accessories",
+            price: 599,
+            img: "",
+            icon: "sun",
+            desc: "Portable solar panel kit"
+        }, {
+            id: 12,
+            name: "GPS Tracker Pro",
+            category: "electronics",
+            price: 79,
+            img: "",
+            icon: "map-pin",
+            desc: "Real-time GPS tracker"
+        }, ];
+
+        const FREE_SHIPPING_THRESHOLD = 100;
+        const TAX_RATE = 0.25;
+        const PROMO_CODES = {
+            'SAVE10': {
+                type: 'percent',
+                value: 10,
+                label: '10% off'
+            },
+            'ARNGREN20': {
+                type: 'percent',
+                value: 20,
+                label: '20% off'
+            },
+            'SHIP5': {
+                type: 'fixed',
+                value: 5,
+                label: '$5 off'
+            },
+            'WELCOME': {
+                type: 'fixed',
+                value: 25,
+                label: '$25 off'
+            },
+        };
+        const SHIPPING_RATES = {
+            'standard': {
+                label: 'Standard (5-7 days)',
+                price: 9.99
+            },
+            'express': {
+                label: 'Express (2-3 days)',
+                price: 19.99
+            },
+            'overnight': {
+                label: 'Overnight (next day)',
+                price: 34.99
+            },
+        };
+
+        // ===================== STATE =====================
+        let cart = JSON.parse(localStorage.getItem('arngren_cart') || '[]');
+        let appliedPromo = null;
+        let selectedShipping = null;
+
+        function saveCart() {
+            localStorage.setItem('arngren_cart', JSON.stringify(cart));
+        }
+
+        // ===================== TOAST =====================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info'
+            };
+            toast.className = `${colors[type]} text-white px-5 py-3 rounded-lg shadow-lg flex items-center gap-3 toast-enter min-w-[300px]`;
+            toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0"></i><span class="text-sm font-medium flex-grow">${message}</span><button onclick="this.parentElement.remove()" class="text-white/70 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+            container.appendChild(toast);
+            lucide.createIcons({
+                nodes: [toast]
+            });
+            setTimeout(() => {
+                toast.classList.replace('toast-enter', 'toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ===================== CONFIRM MODAL =====================
+        let pendingRemoveId = null;
+
+        function confirmRemove(productId) {
+            const p = PRODUCTS.find(pr => pr.id === productId);
+            pendingRemoveId = productId;
+            document.getElementById('confirm-modal-text').textContent = `Remove "${p?.name}" from your cart?`;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            document.getElementById('confirm-remove-btn').onclick = () => {
+                removeFromCart(productId);
+                closeConfirmModal();
+            };
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            pendingRemoveId = null;
+        }
+
+        // ===================== QUANTITY / REMOVE =====================
+        function updateQuantity(productId, delta) {
+            const item = cart.find(i => i.id === productId);
+            if (!item) return;
+            const newQty = item.qty + delta;
+            if (newQty < 1) {
+                confirmRemove(productId);
+                return;
+            }
+            if (newQty > 99) return;
+            item.qty = newQty;
+            saveCart();
+            renderCart();
+        }
+
+        function setQuantity(productId, val) {
+            const item = cart.find(i => i.id === productId);
+            if (!item) return;
+            const qty = parseInt(val);
+            if (isNaN(qty) || qty < 1) return;
+            item.qty = Math.min(qty, 99);
+            saveCart();
+            renderCart();
+        }
+
+        function removeFromCart(productId) {
+            const p = PRODUCTS.find(pr => pr.id === productId);
+            cart = cart.filter(i => i.id !== productId);
+            saveCart();
+            showToast(`${p?.name} removed from cart`, 'info');
+            renderCart();
+        }
+
+        function clearCart() {
+            if (cart.length === 0) return;
+            document.getElementById('confirm-modal-text').textContent = 'Remove all items from your cart?';
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            document.getElementById('confirm-remove-btn').onclick = () => {
+                cart = [];
+                saveCart();
+                closeConfirmModal();
+                showToast('Cart cleared', 'info');
+                renderCart();
+            };
+        }
+
+        // ===================== SHIPPING ESTIMATOR =====================
+        function calculateShipping() {
+            const zip = document.getElementById('zip-input').value.trim();
+            if (zip.length < 3) {
+                showToast('Please enter a valid ZIP code', 'error');
+                document.getElementById('zip-input').classList.add('shake');
+                setTimeout(() => document.getElementById('zip-input').classList.remove('shake'), 300);
+                return;
+            }
+            const resultDiv = document.getElementById('shipping-result');
+            resultDiv.classList.remove('hidden');
+            // Simulate zone-based shipping
+            const zone = parseInt(zip[0]);
+            const freeShip = getSubtotal() >= FREE_SHIPPING_THRESHOLD;
+            resultDiv.innerHTML = `
+            <p class="text-xs text-gray-500 mb-2">Shipping options for <strong>${zip}</strong>:</p>
+            ${Object.entries(SHIPPING_RATES).map(([key, rate]) => {
+                const isFree = freeShip && key === 'standard';
+                const adjustedPrice = isFree ? 0 : rate.price;
+                return `<label class="flex items-center gap-3 p-2.5 rounded-lg border ${selectedShipping === key ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} cursor-pointer mb-2 transition-colors">
+                    <input type="radio" name="shipping-method" value="${key}" ${selectedShipping === key ? 'checked' : ''} 
+                           onchange="selectShipping('${key}')" class="accent-blue-600">
+                    <div class="flex-grow">
+                        <span class="text-sm font-semibold text-gray-900">${rate.label}</span>
+                    </div>
+                    <span class="text-sm font-bold ${isFree ? 'text-green-600' : 'text-gray-900'}">${isFree ? 'FREE' : '$' + adjustedPrice.toFixed(2)}</span>
+                </label>`;
+            }).join('')}
+        `;
+        if (!selectedShipping) selectShipping('standard');
+    }
+    function selectShipping(method) {
+        selectedShipping = method;
+        calculateShipping(); // re-render radio states
+        updateSummary();
+    }
+    function getShippingCost() {
+        if (!selectedShipping) return 0;
+        const freeShip = getSubtotal() >= FREE_SHIPPING_THRESHOLD;
+        if (freeShip && selectedShipping === 'standard') return 0;
+        return SHIPPING_RATES[selectedShipping]?.price || 0;
+    }
+
+    // ===================== PROMO CODE =====================
+    function applyPromo() {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        const resultDiv = document.getElementById('promo-result');
+        resultDiv.classList.remove('hidden');
+        if (!code) {
+            resultDiv.innerHTML = '<span class="text-red-500">Please enter a code</span>';
+            return;
+        }
+        const promo = PROMO_CODES[code];
+        if (!promo) {
+            resultDiv.innerHTML = '<span class="text-red-500 flex items-center gap-1"><i data-lucide="x-circle" class="w-4 h-4"></i> Invalid promo code</span>';
+            appliedPromo = null;
+            lucide.createIcons({ nodes: [resultDiv] });
+            document.getElementById('discount-row').classList.add('hidden');
+            updateSummary();
+            return;
+        }
+        appliedPromo = { code, ...promo };
+        resultDiv.innerHTML = `<span class="text-green-600 flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> <strong>${code}</strong> applied — ${promo.label}!</span>
+            <button onclick="removePromo()" class="text-red-400 hover:text-red-600 text-xs mt-1 underline">Remove</button>`;
+        lucide.createIcons({ nodes: [resultDiv] });
+        showToast(`Promo code ${code} applied!`, 'success');
+        updateSummary();
+    }
+    function removePromo() {
+        appliedPromo = null;
+        document.getElementById('promo-input').value = '';
+        document.getElementById('promo-result').classList.add('hidden');
+        document.getElementById('discount-row').classList.add('hidden');
+        updateSummary();
+        showToast('Promo code removed', 'info');
+    }
+    function getDiscount(subtotal) {
+        if (!appliedPromo) return 0;
+        if (appliedPromo.type === 'percent') return subtotal * (appliedPromo.value / 100);
+        return Math.min(appliedPromo.value, subtotal);
+    }
+
+    // ===================== CALCULATIONS =====================
+    function getSubtotal() {
+        return cart.reduce((sum, item) => {
+            const p = PRODUCTS.find(pr => pr.id === item.id);
+            if (!p) return sum;
+            return sum + (p.salePrice || p.price) * item.qty;
+        }, 0);
+    }
+
+    // ===================== UPDATE SUMMARY =====================
+    function updateSummary() {
+        const subtotal = getSubtotal();
+        const shipping = getShippingCost();
+        const discount = getDiscount(subtotal);
+        const taxable = subtotal - discount + shipping;
+        const tax = taxable * TAX_RATE;
+        const total = taxable + tax;
+
+        document.getElementById('summary-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+        document.getElementById('summary-shipping').textContent = selectedShipping ? (shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`) : 'Enter ZIP below';
+        document.getElementById('summary-tax').textContent = `$${tax.toFixed(2)}`;
+        document.getElementById('summary-total').textContent = `$${total.toFixed(2)}`;
+
+        // Discount row
+        if (appliedPromo && discount > 0) {
+            document.getElementById('discount-row').classList.remove('hidden');
+            document.getElementById('summary-discount').textContent = `-$${discount.toFixed(2)}`;
+        } else {
+            document.getElementById('discount-row').classList.add('hidden');
+        }
+
+        // Free shipping progress
+        updateShippingProgress(subtotal);
+    }
+
+    function updateShippingProgress(subtotal) {
+        const remaining = FREE_SHIPPING_THRESHOLD - subtotal;
+        const percent = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+        const bar = document.getElementById('shipping-progress-bar');
+        const text = document.getElementById('shipping-progress-text');
+        const container = document.getElementById('shipping-progress');
+
+        bar.style.width = percent + '%';
+
+        if (remaining <= 0) {
+            text.textContent = '🎉 You qualify for Free Standard Shipping!';
+            text.className = 'text-sm font-semibold mb-1 text-green-700';
+            container.className = 'bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center gap-4';
+            bar.className = 'bg-green-600 h-2.5 rounded-full progress-animate';
+        } else {
+            text.textContent = `You're $${remaining.toFixed(2)} away from Free Shipping!`;
+            text.className = 'text-sm font-semibold mb-1 text-blue-900';
+            container.className = 'bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6 flex items-center gap-4';
+            bar.className = 'bg-blue-600 h-2.5 rounded-full progress-animate';
+        }
+    }
+
+    // ===================== RENDER CART =====================
+    function renderCart() {
+        const container = document.getElementById('cart-items-container');
+        const emptyState = document.getElementById('empty-cart');
+        const cartContent = document.getElementById('cart-content');
+        const countEl = document.getElementById('cart-item-count');
+        const totalItems = cart.reduce((s, i) => s + i.qty, 0);
+        countEl.textContent = `${totalItems} item${totalItems !== 1 ? 's' : ''}`;
+
+        if (cart.length === 0) {
+            emptyState.classList.remove('hidden');
+            cartContent.classList.add('hidden');
+            return;
+        }
+        emptyState.classList.add('hidden');
+        cartContent.classList.remove('hidden');
+
+        container.innerHTML = cart.map(item => {
+            const p = PRODUCTS.find(pr => pr.id === item.id);
+            if (!p) return '';
+            const price = p.salePrice || p.price;
+            const lineTotal = price * item.qty;
+            return `<div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center border-b border-gray-200 py-6 group" id="cart-item-${p.id}">
+                <!-- Product Info -->
+                <div class="col-span-1 md:col-span-6 flex gap-4">
+                    <a href="product.html?id=${p.id}" class="w-24 h-24 bg-gray-100 rounded-md border border-gray-200 flex-shrink-0 overflow-hidden flex items-center justify-center ${p.img ? '' : 'p-2'}">
+                        ${p.img ? `<img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover">` : `<i data-lucide="${p.icon || 'box'}" class="w-10 h-10 text-gray-400"></i>`}
+                    </a>
+                    <div class="min-w-0">
+                        <a href="product.html?id=${p.id}" class="text-base font-bold text-gray-900 hover:text-blue-600 no-underline block truncate">${p.name}</a>
+                        ${p.color ? `<p class="text-sm text-gray-500">Color: ${p.color}</p>` : ''}
+                        ${p.warranty ? `<p class="text-sm text-gray-500">${p.warranty}</p>` : ''}
+                        ${p.stock ? `<p class="text-xs text-blue-600 font-semibold mt-0.5">${p.stock}</p>` : ''}
+                        <button onclick="confirmRemove(${p.id})" class="text-red-400 hover:text-red-600 text-sm mt-2 flex items-center gap-1 transition-colors">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i> Remove
+                        </button>
+                    </div>
+                </div>
+                <!-- Price -->
+                <div class="col-span-1 md:col-span-2 md:text-center text-gray-900 font-medium">
+                    ${p.salePrice ? `<span class="text-red-600">$${p.salePrice.toFixed(2)}</span><br><span class="text-xs text-gray-400 line-through">$${p.price.toFixed(2)}</span>` : `$${price.toFixed(2)}`}
+                </div>
+                <!-- Quantity -->
+                <div class="col-span-1 md:col-span-2 flex justify-start md:justify-center">
+                    <div class="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                        <button onclick="updateQuantity(${p.id}, -1)" class="px-3 py-1.5 hover:bg-gray-100 border-r border-gray-300 text-gray-600 transition-colors">
+                            <i data-lucide="minus" class="w-3 h-3"></i>
+                        </button>
+                        <input type="number" value="${item.qty}" min="1" max="99" 
+                               onchange="setQuantity(${p.id}, this.value)"
+                               class="w-12 text-center text-sm focus:outline-none font-semibold">
+                        <button onclick="updateQuantity(${p.id}, 1)" class="px-3 py-1.5 hover:bg-gray-100 border-l border-gray-300 text-gray-600 transition-colors">
+                            <i data-lucide="plus" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Total -->
+                <div class="col-span-1 md:col-span-2 text-right font-bold text-gray-900 text-lg">
+                    $${lineTotal.toFixed(2)}
+                </div>
+            </div>`;
+        }).join('');
+
+        lucide.createIcons({ nodes: [container] });
+        updateSummary();
+    }
+
+    // ===================== SUGGESTED PRODUCTS =====================
+    function renderSuggested() {
+        const cartIds = cart.map(i => i.id);
+        const suggestions = PRODUCTS.filter(p => !cartIds.includes(p.id)).slice(0, 4);
+        const container = document.getElementById('suggested-products');
+        container.innerHTML = suggestions.map(p => {
+            const price = p.salePrice || p.price;
+            return `<div class="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+                <a href="product.html?id=${p.id}" class="no-underline">
+                    <div class="bg-gray-100 rounded mb-3 h-32 flex items-center justify-center overflow-hidden">
+                        ${p.img ? `<img src="${p.img}" class="h-full object-contain" alt="${p.name}">` : `<i data-lucide="${p.icon || 'box'}" class="w-10 h-10 text-gray-300"></i>`}
+                    </div>
+                    <h3 class="text-sm font-semibold text-gray-900 truncate">${p.name}</h3>
+                </a>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="font-bold text-sm">$${price.toFixed(2)}</span>
+                    <button onclick="quickAdd(${p.id})" class="bg-blue-600 text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-blue-700 transition-colors flex items-center gap-1">
+                        <i data-lucide="plus" class="w-3 h-3"></i> Add
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+        lucide.createIcons({ nodes: [container] });
+    }
+
+    function quickAdd(productId) {
+        const p = PRODUCTS.find(pr => pr.id === productId);
+        if (!p) return;
+        const existing = cart.find(i => i.id === productId);
+        if (existing) { existing.qty += 1; } else { cart.push({ id: productId, qty: 1 }); }
+        saveCart();
+        showToast(`${p.name} added to cart!`, 'success');
+        renderCart();
+        renderSuggested();
+    }
+
+    // ===================== SEED DEMO DATA =====================
+    function seedDemoCart() {
+        // If cart is empty, add demo items for the prototype
+        if (cart.length === 0) {
+            cart = [
+                { id: 1, qty: 1 },
+                { id: 2, qty: 2 },
+                { id: 6, qty: 5 },
+            ];
+            saveCart();
+        }
+    }
+
+    // ===================== INIT =====================
+    document.addEventListener('DOMContentLoaded', () => {
+        seedDemoCart();
+        lucide.createIcons();
+        renderCart();
+        renderSuggested();
+    });
+
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeConfirmModal();
+    });
+    </script>
+</body>
+
+</html>
